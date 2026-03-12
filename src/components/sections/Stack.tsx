@@ -3,42 +3,36 @@
 import { motion } from "framer-motion";
 
 const tools = [
-    "After Effects", "Premiere Pro", "Cinema 4D", "DaVinci Resolve",
-    "ChatGPT Plus", "Midjourney", "TikTok Symphony", "Claude 3.5",
-    "Neuropsicología", "Diseño de Comportamiento", "PNL", "Psicología Clínica"
+    "After Effects", "Premiere Pro", "Blender", "DaVinci Resolve",
+    "Unreal Engine", "Midjourney", "Stable Diffusion", "Photoshop",
+    "Cinema 4D", "Topaz AI", "Runway Gen-2", "Illustrator"
 ];
 
-export default function Stack() { // <--- ASEGÚRATE DE QUE DICE EXPORT DEFAULT
-    return (
-        <section className="py-20 bg-transparent overflow-hidden border-y border-white/5">
-            <div className="container px-4 mx-auto mb-10 text-center">
-                <p className="text-sm uppercase tracking-[0.3em] text-gray-500 font-medium">
-                    Tech Stack & Metodología
-                </p>
-            </div>
+export default function Stack() {
+    const doubledTools = [...tools, ...tools];
 
-            <div className="flex relative">
+    return (
+        <section className="py-12 bg-[#0A0A0C] border-y border-white/5 overflow-hidden">
+            <div className="flex">
                 <motion.div
-                    className="flex whitespace-nowrap gap-12 items-center"
-                    animate={{ x: ["0%", "-50%"] }}
+                    initial={{ x: 0 }}
+                    animate={{ x: "-50%" }}
                     transition={{
-                        duration: 20,
-                        ease: "linear",
+                        duration: 30,
                         repeat: Infinity,
+                        ease: "linear",
                     }}
+                    className="flex whitespace-nowrap gap-12 items-center"
                 >
-                    {[...tools, ...tools].map((tool, index) => (
+                    {doubledTools.map((tool, index) => (
                         <span
                             key={index}
-                            className="text-3xl md:text-5xl font-bold text-white/20 hover:text-cyan-400 transition-colors cursor-default"
+                            className="text-2xl md:text-4xl font-black uppercase tracking-tighter text-white/20 hover:text-[#CCFF00] transition-colors cursor-default"
                         >
                             {tool}
                         </span>
                     ))}
                 </motion.div>
-
-                <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#0A0A0A] to-transparent z-10" />
-                <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#0A0A0A] to-transparent z-10" />
             </div>
         </section>
     );

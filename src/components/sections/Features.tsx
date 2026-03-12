@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { motion, Variants } from "framer-motion";
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, Variants, useInView } from "framer-motion";
 import { Scissors, Layers, Cpu, Play } from "lucide-react";
 
 interface ServiceSubItem {
@@ -21,28 +21,44 @@ interface ServiceCardProps {
 const ServiceCard = ({ title, icon, color, description, subItems }: ServiceCardProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const cardRef = useRef(null);
 
-    // Tipamos las variantes para que TypeScript no se queje
+    // Detección de scroll para móvil (se activa cuando el 50% de la tarjeta es visible)
+    const isInView = useInView(cardRef, { margin: "-20% 0px -20% 0px" });
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    // Determinar el estado visual basado en dispositivo
+    // En móvil: Si está en el centro (isInView) -> Peek. Si pincha -> Open.
+    // En Web: Hover -> Peek. Click -> Open.
+    const visualState = isOpen ? "open" : (isMobile ? (isInView ? "peek" : "hidden") : (isHovered ? "peek" : "hidden"));
+
     const cardVariants: Variants = {
         hidden: {
             x: "-50%",
-            y: 0,
+            y: 10,
             rotate: 0,
             opacity: 0,
-            scale: 0.9,
+            scale: 0.95,
         },
         peek: (i: number) => ({
-            x: "-50%",
-            y: -35,
-            rotate: (i - 1) * 4,
+            x: i === 0 ? "-80%" : i === 1 ? "-50%" : "-20%", // Separadas pero solapadas
+            y: -25, // Solo asoman el borde superior
+            rotate: (i - 1) * 3,
             opacity: 1,
             scale: 1,
             transition: { type: "spring", stiffness: 300, damping: 25 }
         }),
         open: (i: number) => ({
-            x: i === 0 ? "-140%" : i === 1 ? "-50%" : "40%",
-            y: i === 1 ? -150 : -115,
-            rotate: (i - 1) * 15,
+            x: i === 0 ? "-130%" : i === 1 ? "-50%" : "30%",
+            y: -110, // Altura ajustada para que el borde inferior quede algo tapado
+            rotate: (i - 1) * 12,
             opacity: 1,
             scale: 1,
             transition: { type: "spring", stiffness: 200, damping: 20 }
@@ -51,64 +67,66 @@ const ServiceCard = ({ title, icon, color, description, subItems }: ServiceCardP
 
     return (
         <div
-            className="relative h-[520px] flex items-end justify-center"
-            onMouseEnter={() => setIsHovered(true)}
+            ref={cardRef}
+            className="relative h-[320px] flex items-end justify-center" // Hitbox reducida
+            onMouseEnter={() => !isMobile && setIsHovered(true)}
             onMouseLeave={() => {
-                setIsHovered(false);
-                setIsOpen(false);
+                if (!isMobile) {
+                    setIsHovered(false);
+                    setIsOpen(false);
+                }
             }}
         >
-            {/* 📁 CAPA DE ARCHIVOS (Z-index intermedio) */}
-            <div className="absolute inset-0 pointer-events-none flex items-end justify-center pb-64">
+            {/* 📁 CAPA DE ARCHIVOS */}
+            <div className="absolute inset-x-0 bottom-64 flex justify-center pointer-events-none">
                 {subItems.map((item, i) => (
                     <motion.div
                         key={i}
                         custom={i}
                         initial="hidden"
-                        animate={isOpen ? "open" : isHovered ? "peek" : "hidden"}
+                        animate={visualState}
                         variants={cardVariants}
                         whileHover={isOpen ? {
-                            scale: 1.15,
-                            zIndex: 100, // Se pone encima de TODO al tocarlo
+                            scale: 1.1,
+                            zIndex: 100, // Se pone por encima de la tarjeta principal
+                            y: -130, // Un pelín más arriba al destacar
                             transition: { duration: 0.2 }
                         } : {}}
-                        className="absolute w-44 h-56 bg-[#16161a] border border-white/10 p-5 shadow-2xl pointer-events-auto origin-bottom cursor-pointer"
+                        className="absolute w-40 h-52 bg-[#16161a] border border-white/10 p-5 shadow-2xl pointer-events-auto origin-bottom cursor-pointer"
                         style={{
                             zIndex: isOpen ? 50 + i : 10 + i,
-                            borderTop: `3px solid ${isOpen ? color : 'transparent'}`
+                            borderTop: `3px solid ${color}`
                         }}
                     >
                         <div className="flex flex-col h-full justify-between pointer-events-none">
                             <div className="flex justify-between items-start">
-                                <span className="text-[8px] font-mono text-white/20 uppercase tracking-[0.2em]">FILE_V.0{i + 1}</span>
-                                <div className="w-1.5 h-1.5 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.3)]" style={{ backgroundColor: color }} />
+                                <span className="text-[8px] font-mono text-white/20 uppercase">FILE_V.0{i + 1}</span>
+                                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
                             </div>
                             <div className="flex-1 mt-5">
-                                <p className="text-[11px] font-black text-white uppercase mb-1 tracking-tighter border-b border-white/5 pb-2">
+                                <p className="text-[10px] font-black text-white uppercase border-b border-white/5 pb-2">
                                     {item.label}
                                 </p>
-                                <p className="text-[10px] text-gray-500 leading-relaxed mt-3 italic font-light">
+                                <p className="text-[9px] text-gray-500 leading-relaxed mt-2 italic font-light">
                                     {item.info}
                                 </p>
                             </div>
-                            <div className="h-1 w-full opacity-20" style={{ backgroundColor: color }} />
                         </div>
                     </motion.div>
                 ))}
             </div>
 
-            {/* 💼 LA CARPETA (Z-index superior para el click, pero no tapa los archivos abiertos) */}
+            {/* 💼 TARJETA PRINCIPAL (La Carpeta) */}
             <motion.div
                 onClick={(e) => {
                     e.stopPropagation();
                     setIsOpen(!isOpen);
                 }}
                 animate={{
-                    y: isHovered ? -8 : 0,
-                    borderColor: isOpen || isHovered ? color : 'rgba(255,255,255,0.1)',
-                    scale: isHovered ? 1.02 : 1
+                    y: isHovered ? -5 : 0,
+                    borderColor: (isOpen || (isMobile ? isInView : isHovered)) ? color : 'rgba(255,255,255,0.1)',
                 }}
-                className="relative z-40 w-full h-64 bg-[#0F0F12] border-2 p-8 cursor-pointer overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
+                className="relative z-40 w-full h-64 bg-[#0F0F12] border-2 p-8 cursor-pointer overflow-hidden shadow-xl"
             >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] to-transparent pointer-events-none" />
 
@@ -117,36 +135,32 @@ const ServiceCard = ({ title, icon, color, description, subItems }: ServiceCardP
                         {icon}
                     </div>
                     <motion.div
-                        animate={isOpen ? { scale: [1, 1.4, 1], opacity: [0.4, 1, 0.4] } : {}}
-                        transition={{ repeat: Infinity, duration: 1.5 }}
-                        className="w-2.5 h-2.5 rounded-full"
+                        animate={isOpen ? { scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] } : {}}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className="w-2 h-2 rounded-full"
                         style={{ backgroundColor: color }}
                     />
                 </div>
 
-                <div className="relative">
-                    <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2 italic">
-                        {title}
-                    </h3>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-[0.15em] leading-relaxed max-w-[85%] font-medium">
-                        {description}
-                    </p>
-                </div>
+                <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2 italic">
+                    {title}
+                </h3>
+                <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em] max-w-[85%] font-medium">
+                    {description}
+                </p>
 
-                <div className="mt-8 pt-5 border-t border-white/5 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <div className="w-1 h-1 bg-[#CCFF00] rounded-full animate-pulse" />
-                        <span className="text-[9px] font-mono text-white/40 uppercase tracking-[0.1em]">
-                            {isOpen ? 'DAT_LOADED' : isHovered ? 'AWAITING_CMD' : 'IDLE_MODE'}
-                        </span>
-                    </div>
-                    <Play className={`w-3 h-3 transition-all duration-500 ${isOpen ? 'rotate-90 text-white scale-125' : 'text-white/20'}`} />
+                <div className="mt-8 pt-4 border-t border-white/5 flex justify-between items-center text-white/20">
+                    <span className="text-[8px] font-mono uppercase">
+                        {isMobile ? (isInView ? 'AUTO_SCAN_ON' : 'SLEEP_MODE') : (isOpen ? 'DATA_ACTIVE' : 'READY')}
+                    </span>
+                    <Play className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-90 text-white' : ''}`} />
                 </div>
             </motion.div>
         </div>
     );
 };
 
+// ... (El resto del objeto services y el componente Features queda igual)
 const services: ServiceCardProps[] = [
     {
         title: "Dopamine Editing",

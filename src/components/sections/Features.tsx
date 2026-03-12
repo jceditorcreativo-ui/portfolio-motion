@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { Scissors, Layers, Cpu, Play } from "lucide-react";
 
-// 1. Interfaces para TypeScript
 interface ServiceSubItem {
     label: string;
     info: string;
@@ -19,102 +18,135 @@ interface ServiceCardProps {
     subItems: ServiceSubItem[];
 }
 
-// 2. Componente de la Tarjeta con lógica de Hover y Click
 const ServiceCard = ({ title, icon, color, description, subItems }: ServiceCardProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
-    // Lógica de movimiento: Peek (asomarse) vs Open (abanico total)
-    const getTransform = (index: number) => {
-        if (isOpen) {
-            // Abanico centrado y desplegado
-            if (index === 0) return 'translate(-120%, -100%) rotate(-10deg)';
-            if (index === 1) return 'translate(-50%, -125%) rotate(0deg)';
-            if (index === 2) return 'translate(20%, -100%) rotate(10deg)';
-        }
-        if (isHovered) {
-            // Solo asoman un poco (Peek)
-            return `translate(-50%, -25px) rotate(${(index - 1) * 2}deg)`;
-        }
-        // Escondidas
-        return 'translate(-50%, 0%) rotate(0deg)';
+    // Tipamos las variantes para que TypeScript no se queje
+    const cardVariants: Variants = {
+        hidden: {
+            x: "-50%",
+            y: 0,
+            rotate: 0,
+            opacity: 0,
+            scale: 0.9,
+        },
+        peek: (i: number) => ({
+            x: "-50%",
+            y: -35,
+            rotate: (i - 1) * 4,
+            opacity: 1,
+            scale: 1,
+            transition: { type: "spring", stiffness: 300, damping: 25 }
+        }),
+        open: (i: number) => ({
+            x: i === 0 ? "-140%" : i === 1 ? "-50%" : "40%",
+            y: i === 1 ? -150 : -115,
+            rotate: (i - 1) * 15,
+            opacity: 1,
+            scale: 1,
+            transition: { type: "spring", stiffness: 200, damping: 20 }
+        })
     };
 
     return (
         <div
-            className="relative h-[480px] flex items-end justify-center group"
+            className="relative h-[520px] flex items-end justify-center"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => {
                 setIsHovered(false);
-                setIsOpen(false); // Auto-cerrado al salir
+                setIsOpen(false);
             }}
         >
-            {/* 📁 ARCHIVOS INTERNOS */}
-            {subItems.map((item, i) => (
-                <motion.div
-                    key={i}
-                    layout
-                    whileHover={isOpen ? { scale: 1.08, zIndex: 50, transition: { duration: 0.2 } } : {}}
-                    className="absolute z-10 w-44 h-52 bg-[#1A1A1E] border border-white/20 p-5 shadow-2xl cursor-pointer"
-                    style={{
-                        left: '50%',
-                        transform: getTransform(i),
-                        opacity: isOpen || isHovered ? 1 : 0,
-                        transition: 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)', // Efecto muelle
-                        borderColor: isHovered && !isOpen ? color + '40' : 'rgba(255,255,255,0.1)'
-                    }}
-                >
-                    <div className="flex flex-col h-full justify-between pointer-events-none">
-                        <span className="text-[9px] font-mono text-white/30 uppercase tracking-[0.2em]">Module_0{i + 1}</span>
-                        <div className="flex-1 mt-3">
-                            <p className="text-[12px] font-bold text-white uppercase mb-1 tracking-tight">{item.label}</p>
-                            <p className="text-[10px] text-gray-500 leading-tight">{item.info}</p>
+            {/* 📁 CAPA DE ARCHIVOS (Z-index intermedio) */}
+            <div className="absolute inset-0 pointer-events-none flex items-end justify-center pb-64">
+                {subItems.map((item, i) => (
+                    <motion.div
+                        key={i}
+                        custom={i}
+                        initial="hidden"
+                        animate={isOpen ? "open" : isHovered ? "peek" : "hidden"}
+                        variants={cardVariants}
+                        whileHover={isOpen ? {
+                            scale: 1.15,
+                            zIndex: 100, // Se pone encima de TODO al tocarlo
+                            transition: { duration: 0.2 }
+                        } : {}}
+                        className="absolute w-44 h-56 bg-[#16161a] border border-white/10 p-5 shadow-2xl pointer-events-auto origin-bottom cursor-pointer"
+                        style={{
+                            zIndex: isOpen ? 50 + i : 10 + i,
+                            borderTop: `3px solid ${isOpen ? color : 'transparent'}`
+                        }}
+                    >
+                        <div className="flex flex-col h-full justify-between pointer-events-none">
+                            <div className="flex justify-between items-start">
+                                <span className="text-[8px] font-mono text-white/20 uppercase tracking-[0.2em]">FILE_V.0{i + 1}</span>
+                                <div className="w-1.5 h-1.5 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.3)]" style={{ backgroundColor: color }} />
+                            </div>
+                            <div className="flex-1 mt-5">
+                                <p className="text-[11px] font-black text-white uppercase mb-1 tracking-tighter border-b border-white/5 pb-2">
+                                    {item.label}
+                                </p>
+                                <p className="text-[10px] text-gray-500 leading-relaxed mt-3 italic font-light">
+                                    {item.info}
+                                </p>
+                            </div>
+                            <div className="h-1 w-full opacity-20" style={{ backgroundColor: color }} />
                         </div>
-                        <div className="h-1 w-full" style={{ backgroundColor: color + '20' }} />
-                    </div>
-                </motion.div>
-            ))}
+                    </motion.div>
+                ))}
+            </div>
 
-            {/* 💼 CONTENEDOR PRINCIPAL */}
-            <div
-                onClick={() => setIsOpen(!isOpen)}
-                className="relative z-20 w-full h-64 bg-[#111113] border-2 border-white/10 p-8 cursor-pointer transition-all duration-300 overflow-hidden"
-                style={{
-                    borderColor: isOpen || isHovered ? color : 'rgba(255,255,255,0.1)',
-                    boxShadow: isHovered ? `0 0 30px ${color}15` : 'none'
+            {/* 💼 LA CARPETA (Z-index superior para el click, pero no tapa los archivos abiertos) */}
+            <motion.div
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(!isOpen);
                 }}
+                animate={{
+                    y: isHovered ? -8 : 0,
+                    borderColor: isOpen || isHovered ? color : 'rgba(255,255,255,0.1)',
+                    scale: isHovered ? 1.02 : 1
+                }}
+                className="relative z-40 w-full h-64 bg-[#0F0F12] border-2 p-8 cursor-pointer overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
             >
-                {/* Glow interno opcional */}
-                <div className="absolute inset-0 bg-gradient-to-t from-white/[0.02] to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] to-transparent pointer-events-none" />
 
-                <div className="flex justify-between items-start mb-6 relative z-10">
+                <div className="flex justify-between items-start mb-6">
                     <div className="p-3 bg-black border border-white/10" style={{ color: color }}>
                         {icon}
                     </div>
-                    <div className={`w-2 h-2 rounded-full ${isOpen ? 'animate-ping' : ''}`} style={{ backgroundColor: color }} />
+                    <motion.div
+                        animate={isOpen ? { scale: [1, 1.4, 1], opacity: [0.4, 1, 0.4] } : {}}
+                        transition={{ repeat: Infinity, duration: 1.5 }}
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ backgroundColor: color }}
+                    />
                 </div>
 
-                <div className="relative z-10">
-                    <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">
+                <div className="relative">
+                    <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2 italic">
                         {title}
                     </h3>
-                    <p className="text-xs text-gray-500 uppercase tracking-widest leading-relaxed max-w-[80%]">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-[0.15em] leading-relaxed max-w-[85%] font-medium">
                         {description}
                     </p>
                 </div>
 
-                <div className="mt-8 pt-4 border-t border-white/5 flex justify-between items-center relative z-10">
-                    <span className="text-[9px] font-mono text-white/40 uppercase tracking-[0.2em]">
-                        {isOpen ? 'STATUS: ACTIVE' : isHovered ? 'STATUS: READY' : 'STATUS: IDLE'}
-                    </span>
-                    <Play className={`w-3 h-3 text-white/20 ${isOpen ? 'rotate-90 text-[#CCFF00]' : ''} transition-all`} />
+                <div className="mt-8 pt-5 border-t border-white/5 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 bg-[#CCFF00] rounded-full animate-pulse" />
+                        <span className="text-[9px] font-mono text-white/40 uppercase tracking-[0.1em]">
+                            {isOpen ? 'DAT_LOADED' : isHovered ? 'AWAITING_CMD' : 'IDLE_MODE'}
+                        </span>
+                    </div>
+                    <Play className={`w-3 h-3 transition-all duration-500 ${isOpen ? 'rotate-90 text-white scale-125' : 'text-white/20'}`} />
                 </div>
-            </div>
+            </motion.div>
         </div>
     );
 };
 
-// 3. Lista de Servicios
 const services: ServiceCardProps[] = [
     {
         title: "Dopamine Editing",
